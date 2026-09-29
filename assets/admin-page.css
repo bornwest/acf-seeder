@@ -1,0 +1,28 @@
+.cseed { max-width: 1200px; }
+.cseed__intro { max-width: 720px; color: #50575e; font-size: 14px; }
+
+.cseed__group { margin: 28px 0 0; }
+.cseed__head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cseed__head h2 { margin: 0; padding: 0; font-size: 16px; }
+.cseed__count { background: #dcdcde; color: #3c434a; border-radius: 10px; padding: 1px 9px; font-size: 12px; }
+.cseed__toggle { margin-left: auto; }
+
+.cseed__grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.cseed__card {
+	display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+	background: #fff; border: 1px solid #dcdcde; border-radius: 6px; cursor: pointer;
+	transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.cseed__card:hover { border-color: #8c8f94; }
+.cseed__card:has(input:checked) { border-color: #2271b1; background: #f0f6fc; box-shadow: 0 0 0 1px #2271b1; }
+.cseed__card .dashicons { flex: none; color: #787c82; }
+.cseed__card:has(input:checked) .dashicons { color: #2271b1; }
+.cseed__card input { flex: none; margin: 0; }
+.cseed__name { flex: 1; font-weight: 500; overflow-wrap: anywhere; }
+
+.cseed__actions { position: sticky; bottom: 0; margin-top: 28px; padding: 14px 0; background: #f0f0f1; border-top: 1px solid #dcdcde; }
+.cseed__actions .button { margin-right: 12px; }
+.cseed__hint { color: #646970; }
+
+@media (max-width: 1100px) { .cseed__grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .cseed__grid { grid-template-columns: 1fr; } }

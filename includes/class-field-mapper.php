@@ -1,0 +1,204 @@
+<?php
+/**
+ * Writes a seed's `fields` into ACF.
+ *
+ * Seed values mirror the *logical* ACF structure (groups, repeaters, cloned
+ * groups). Cloned-field prefixes are resolved automatically, so a cloned
+ * `header` group is written as `"header": { "title": "..." }`.
+ *
+ * Value conventions:
+ *   image        "file.jpg" (relative to seeds/images) or { "file": "file.jpg", "alt": "..." }
+ *   post_object  post slug (or ID)
+ *   link         { "title": "...", "url": "...", "target": "" }
+ */
+class Acf_Seeder_Field_Mapper
+{
+	private $images;
+	private $log;
+
+	public function __construct(Acf_Seeder_Image_Importer $images, Acf_Seeder_Log $log)
+	{
+		$this->images = $images;
+		$this->log    = $log;
+	}
+
+	public function apply($post_id, $post_type, $seed)
+	{
+		$data   = $seed['fields'] ?? array();
+		$fields = $this->fields_for($post_type, $seed);
+
+		foreach ($fields as $field) {
+			$value = $this->lookup($field['name'], $data);
+
+			if (null !== $value) {
+				update_field($field['key'], $this->convert($field, $value), $post_id);
+			}
+		}
+
+		$this->warn_unmatched($seed['slug'], $data, $fields);
+	}
+
+	/**
+	 * Top-level ACF fields for a seed: the field group named by `group`, or
+	 * else the groups whose location matches the post type / page template.
+	 */
+	private function fields_for($post_type, $seed)
+	{
+		$groups = array();
+
+		if (! empty($seed['group'])) {
+			foreach (acf_get_field_groups() as $group) {
+				if ($group['title'] === $seed['group']) {
+					$groups[] = $group;
+				}
+			}
+		}
+
+		if (! $groups) {
+			$filter = array('post_type' => $post_type);
+
+			if (! empty($seed['template'])) {
+				$filter['page_template'] = $seed['template'];
+			}
+
+			$groups = acf_get_field_groups($filter);
+		}
+
+		if (! $groups) {
+			$this->log->warning("No ACF field group found for '{$seed['slug']}'.");
+		}
+
+		$fields = array();
+
+		foreach ($groups as $group) {
+			$fields = array_merge($fields, acf_get_fields($group['key']) ?: array());
+		}
+
+		return $fields;
+	}
+
+	/**
+	 * Find the seed value for an ACF field name, tolerating clone prefixes:
+	 * `header_title` is found at data['header_title'], data['header']['title']
+	 * or data['title'].
+	 */
+	private function lookup($name, $data)
+	{
+		if (! is_array($data)) {
+			return null;
+		}
+
+		if (array_key_exists($name, $data)) {
+			return $data[$name];
+		}
+
+		foreach ($data as $key => $value) {
+			if (is_string($key) && is_array($value) && ! $this->is_list($value) && 0 === strpos($name, $key . '_')) {
+				$found = $this->lookup(substr($name, strlen($key) + 1), $value);
+
+				if (null !== $found) {
+					return $found;
+				}
+			}
+		}
+
+		foreach ($data as $key => $value) {
+			if (is_string($key) && '_' . $key === substr($name, -strlen($key) - 1)) {
+				return $value;
+			}
+		}
+
+		return null;
+	}
+
+	private function is_list($value)
+	{
+		return array_keys($value) === range(0, count($value) - 1);
+	}
+
+	/**
+	 * Resolve sub fields of a group / repeater row into an array keyed by
+	 * field key, which ACF accepts regardless of clone prefixing.
+	 */
+	private function convert_fields($fields, $data)
+	{
+		$out = array();
+
+		foreach ($fields as $field) {
+			// Seamless clones that were not expanded are treated as inline.
+			if ('clone' === $field['type'] && 'seamless' === ($field['display'] ?? '') && ! empty($field['sub_fields'])) {
+				$nested = isset($data[$field['name']]) && is_array($data[$field['name']]) ? $data[$field['name']] : $data;
+				$out    = array_merge($out, $this->convert_fields($field['sub_fields'], $nested));
+				continue;
+			}
+
+			$value = $this->lookup($field['name'], $data);
+
+			if (null !== $value) {
+				$out[$field['key']] = $this->convert($field, $value);
+			}
+		}
+
+		return $out;
+	}
+
+	private function convert($field, $value)
+	{
+		switch ($field['type']) {
+			case 'group':
+			case 'clone':
+				return $this->convert_fields($field['sub_fields'] ?? array(), (array) $value);
+
+			case 'repeater':
+				return array_map(function ($row) use ($field) {
+					return $this->convert_fields($field['sub_fields'], (array) $row);
+				}, (array) $value);
+
+			case 'image':
+			case 'file':
+				return $this->images->import($value);
+
+			case 'post_object':
+				return $this->post_id($value, $field['post_type'] ?? 'any');
+
+			case 'true_false':
+				return (int) (bool) $value;
+
+			default:
+				return $value;
+		}
+	}
+
+	private function post_id($value, $post_type)
+	{
+		if (is_numeric($value)) {
+			return (int) $value;
+		}
+
+		$found = get_posts(array(
+			'name'        => $value,
+			'post_type'   => $post_type ?: 'any',
+			'post_status' => 'any',
+			'numberposts' => 1,
+			'fields'      => 'ids',
+		));
+
+		if (! $found) {
+			$this->log->warning("Referenced post '{$value}' not found — seed its post type first.");
+			return null;
+		}
+
+		return $found[0];
+	}
+
+	private function warn_unmatched($slug, $data, $fields)
+	{
+		$names = array_column($fields, 'name');
+
+		foreach (array_keys($data) as $key) {
+			if (! in_array($key, $names, true)) {
+				$this->log->warning("'{$slug}': no top-level ACF field named '{$key}'.");
+			}
+		}
+	}
+}
