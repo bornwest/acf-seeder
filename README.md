@@ -45,6 +45,8 @@ Override the location with the `acf_seeder_dir` filter (absolute path, no traili
 | link         | `{ "title": "…", "url": "…", "target": "" }`                 |
 | true_false   | `true` / `false`                                             |
 
+SVG images are accepted: SVG uploads are allowed only while the seeder imports a file (they are not enabled site-wide), so only seed SVGs you trust.
+
 Warnings (unmatched field names, missing images or referenced posts) are shown on the Seed Content page after a run.
 
 ## Filters

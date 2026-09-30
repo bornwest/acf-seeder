@@ -48,7 +48,10 @@ class Acf_Seeder_Asset_Importer
 		$tmp = wp_tempnam(basename($path));
 		copy($path, $tmp);
 
+		// SVG uploads are blocked by default; allow them only for this import.
+		$this->allow_svg(true);
 		$id = media_handle_sideload(array('name' => basename($path), 'tmp_name' => $tmp), 0);
+		$this->allow_svg(false);
 
 		if (is_wp_error($id)) {
 			@unlink($tmp);
@@ -62,6 +65,34 @@ class Acf_Seeder_Asset_Importer
 		}
 
 		return $id;
+	}
+
+	private function allow_svg($allow)
+	{
+		if ($allow) {
+			add_filter('upload_mimes', array($this, 'svg_mime'));
+			add_filter('wp_check_filetype_and_ext', array($this, 'svg_filetype'), 10, 3);
+		} else {
+			remove_filter('upload_mimes', array($this, 'svg_mime'));
+			remove_filter('wp_check_filetype_and_ext', array($this, 'svg_filetype'), 10);
+		}
+	}
+
+	public function svg_mime($mimes)
+	{
+		$mimes['svg'] = 'image/svg+xml';
+
+		return $mimes;
+	}
+
+	public function svg_filetype($data, $file, $filename)
+	{
+		if ('svg' === strtolower(pathinfo($filename, PATHINFO_EXTENSION))) {
+			$data['ext']  = 'svg';
+			$data['type'] = 'image/svg+xml';
+		}
+
+		return $data;
 	}
 
 	private function find($file)
