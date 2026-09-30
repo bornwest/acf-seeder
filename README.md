@@ -35,7 +35,7 @@ Override the location with the `acf_seeder_dir` filter (absolute path, no traili
 - `template` — pages only; sets the page template.
 - Options pages use the same format with no `template`; `group` is required (the options page's field group title). Values are written to ACF's shared `options` store, so read them with `get_field('name', 'option')`.
 - `group` — optional; the title of the ACF field group to fill. Without it, groups are found from the post type / page template location rules.
-- `fields` — values mirroring the *logical* ACF structure. Clone prefixes are resolved automatically, so a cloned `header` group is written as `"header": { "title": "…" }`. Repeaters are arrays of rows.
+- `fields` — optional (omit for a blank post or page); values mirroring the *logical* ACF structure. Clone prefixes are resolved automatically, so a cloned `header` group is written as `"header": { "title": "…" }`. Repeaters are arrays of rows.
 
 | Field type   | Value                                                        |
 |--------------|--------------------------------------------------------------|

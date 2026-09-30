@@ -26,7 +26,13 @@ class Acf_Seeder_Field_Mapper
 	/** @param int|string $post_id Post ID, or 'options' for ACF options pages. */
 	public function apply($post_id, $post_type, $seed)
 	{
-		$data   = $seed['fields'] ?? array();
+		$data = $seed['fields'] ?? array();
+
+		// Nothing to write (e.g. a blank page): skip the ACF group lookup and its warnings.
+		if (! $data) {
+			return;
+		}
+
 		$fields = $this->fields_for($post_type, $seed);
 
 		foreach ($fields as $field) {
