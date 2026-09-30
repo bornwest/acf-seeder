@@ -1,8 +1,9 @@
 <?php
 /**
- * Imports images from seeds/images into the media library, once per file name.
+ * Imports images (seeds/images) and files (seeds/files) into the media
+ * library, once per file name.
  */
-class Acf_Seeder_Image_Importer
+class Acf_Seeder_Asset_Importer
 {
 	const META_KEY = '_acf_seeder_image';
 
@@ -21,9 +22,10 @@ class Acf_Seeder_Image_Importer
 
 	/**
 	 * @param string|array $value "file.jpg" or array( 'file' => 'file.jpg', 'alt' => '...' )
+	 * @param string       $kind  'image' (seeds/images) or 'file' (seeds/files)
 	 * @return int|null Attachment ID.
 	 */
-	public function import($value)
+	public function import($value, $kind = 'image')
 	{
 		$file = is_array($value) ? $value['file'] : $value;
 		$alt  = is_array($value) ? ($value['alt'] ?? '') : '';
@@ -34,18 +36,19 @@ class Acf_Seeder_Image_Importer
 			return $existing;
 		}
 
-		$path = $this->source->image_path($file);
+		$path = $this->source->asset_path($file, $kind);
 
-		if (! file_exists($path)) {
-			$this->log->warning("Image not found: seeds/images/{$file}");
+		if (! $path) {
+			$dir = 'file' === $kind ? 'seeds/files/' : 'seeds/images/';
+			$this->log->warning("{$kind} not found: {$dir}{$file}");
 			return null;
 		}
 
 		// media_handle_sideload moves the file, so hand it a copy.
-		$tmp = wp_tempnam($file);
+		$tmp = wp_tempnam(basename($path));
 		copy($path, $tmp);
 
-		$id = media_handle_sideload(array('name' => basename($file), 'tmp_name' => $tmp), 0);
+		$id = media_handle_sideload(array('name' => basename($path), 'tmp_name' => $tmp), 0);
 
 		if (is_wp_error($id)) {
 			@unlink($tmp);

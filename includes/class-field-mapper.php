@@ -8,20 +8,22 @@
  *
  * Value conventions:
  *   image        "file.jpg" (relative to seeds/images) or { "file": "file.jpg", "alt": "..." }
+ *   file         "doc.pdf" (relative to seeds/files)
  *   post_object  post slug (or ID)
  *   link         { "title": "...", "url": "...", "target": "" }
  */
 class Acf_Seeder_Field_Mapper
 {
-	private $images;
+	private $assets;
 	private $log;
 
-	public function __construct(Acf_Seeder_Image_Importer $images, Acf_Seeder_Log $log)
+	public function __construct(Acf_Seeder_Asset_Importer $assets, Acf_Seeder_Log $log)
 	{
-		$this->images = $images;
+		$this->assets = $assets;
 		$this->log    = $log;
 	}
 
+	/** @param int|string $post_id Post ID, or 'options' for ACF options pages. */
 	public function apply($post_id, $post_type, $seed)
 	{
 		$data   = $seed['fields'] ?? array();
@@ -155,8 +157,10 @@ class Acf_Seeder_Field_Mapper
 				}, (array) $value);
 
 			case 'image':
+				return $this->assets->import($value, 'image');
+
 			case 'file':
-				return $this->images->import($value);
+				return $this->assets->import($value, 'file');
 
 			case 'post_object':
 				return $this->post_id($value, $field['post_type'] ?? 'any');

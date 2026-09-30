@@ -92,9 +92,16 @@ class Acf_Seeder_Admin_Page
 	/** Dashicon per folder, taken from the registered post type's menu icon. */
 	private function icons($folders, $seeder)
 	{
-		$icons = array(Acf_Seeder_Source::PAGES => 'dashicons-admin-page');
+		$icons = array(
+			Acf_Seeder_Source::PAGES   => 'dashicons-admin-page',
+			Acf_Seeder_Source::OPTIONS => 'dashicons-admin-settings',
+		);
 
 		foreach ($folders as $folder) {
+			if (isset($icons[$folder])) {
+				continue;
+			}
+
 			$type = $seeder->post_type_for_folder($folder);
 			$icon = $type ? get_post_type_object($type)->menu_icon : null;
 

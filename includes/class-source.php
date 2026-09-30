@@ -4,11 +4,17 @@
  *
  *   seeds/data/<plural-name>/<slug>.json   one post per file (e.g. faqs/, team-members/)
  *   seeds/data/pages/<slug>.json           one page per file
+ *   seeds/data/options/<slug>.json         one ACF options page per file
+ *   seeds/files/<file>                files (PDFs etc.) referenced from the JSON
  *   seeds/images/<file>                    images referenced from the JSON
  */
 class Acf_Seeder_Source
 {
-	const PAGES = 'pages';
+	const PAGES   = 'pages';
+	const OPTIONS = 'options';
+
+	// Folders in seeds/data that are not post types.
+	const RESERVED = array('pages', 'options');
 
 	private $dir;
 
@@ -52,8 +58,13 @@ class Acf_Seeder_Source
 			}
 		}
 
-		uksort($groups, function ($a, $b) {
-			return (self::PAGES === $a) <=> (self::PAGES === $b) ?: strcmp($a, $b);
+		// Post type folders first (alphabetical), then pages, then options.
+		$rank = function ($folder) {
+			return array(self::PAGES => 1, self::OPTIONS => 2)[$folder] ?? 0;
+		};
+
+		uksort($groups, function ($a, $b) use ($rank) {
+			return $rank($a) <=> $rank($b) ?: strcmp($a, $b);
 		});
 
 		return $groups;
@@ -64,9 +75,24 @@ class Acf_Seeder_Source
 		return $this->read("{$this->dir}/data/{$folder}/{$slug}.json");
 	}
 
-	public function image_path($file)
+	/**
+	 * Absolute path of a referenced asset, relative to seeds/images (kind
+	 * 'image') or seeds/files (kind 'file'). The extension may be omitted
+	 * ("capability/fixed-income"), in which case the first file with that name
+	 * and any extension is used. Null if nothing matches.
+	 */
+	public function asset_path($file, $kind = 'image')
 	{
-		return $this->dir . '/images/' . $file;
+		$base = 'file' === $kind ? $this->dir . '/files/' : $this->dir . '/images/';
+		$path = $base . $file;
+
+		if (is_file($path)) {
+			return $path;
+		}
+
+		$matches = glob($path . '.*');
+
+		return $matches ? $matches[0] : null;
 	}
 
 	private function read($file)

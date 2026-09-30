@@ -1,9 +1,9 @@
 <?php
 /**
- * Creates or updates posts (and pages) from the seed files.
+ * Creates or updates posts, pages and ACF options pages from the seed files.
  *
  * Idempotent: posts are matched by post type + slug and updated in place.
- * Post types are seeded before pages, since pages reference them.
+ * Post types are seeded first (pages reference them), then pages, then options.
  */
 class Acf_Seeder
 {
@@ -44,11 +44,11 @@ class Acf_Seeder
 			throw new RuntimeException('ACF is not active.');
 		}
 
-		$this->mapper = new Acf_Seeder_Field_Mapper(new Acf_Seeder_Image_Importer($this->source, $this->log), $this->log);
+		$this->mapper = new Acf_Seeder_Field_Mapper(new Acf_Seeder_Asset_Importer($this->source, $this->log), $this->log);
 		$only         = array_filter($only);
 
 		foreach ($this->items() as $folder => $titles) {
-			if (Acf_Seeder_Source::PAGES === $folder) {
+			if (in_array($folder, Acf_Seeder_Source::RESERVED, true)) {
 				continue;
 			}
 
@@ -71,6 +71,12 @@ class Acf_Seeder
 				$this->seed_post('page', $this->source->seed(Acf_Seeder_Source::PAGES, $slug));
 			}
 		}
+
+		foreach (array_keys($this->items()[Acf_Seeder_Source::OPTIONS] ?? array()) as $slug) {
+			if ($this->selected($only, array('options', $slug, "options/{$slug}"))) {
+				$this->seed_options($this->source->seed(Acf_Seeder_Source::OPTIONS, $slug));
+			}
+		}
 	}
 
 	private function selected($only, $candidates)
@@ -91,6 +97,14 @@ class Acf_Seeder
 		}
 
 		return null;
+	}
+
+	/** Write an options page's fields to ACF's shared 'options' store. */
+	private function seed_options($seed)
+	{
+		$this->mapper->apply('options', 'options', $seed);
+
+		$this->log->info("Updated options '{$seed['slug']}'");
 	}
 
 	private function seed_post($post_type, $seed)

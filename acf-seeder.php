@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       ACF Seeder
- * Description:       Seeds posts, pages and ACF field values (and their images) from JSON files in the active theme's seeds/ folder, from a "Seed Content" admin page.
+ * Description:       Seeds posts, pages, ACF options pages and their field values (with images and files) from JSON files in the active theme's seeds/ folder, from a "Seed Content" admin page.
  * Version:           1.0.0
  * Requires at least: 6.5
  * Requires PHP:      7.4
@@ -18,7 +18,7 @@ define('ACF_SEEDER_URL', plugin_dir_url(__FILE__));
 
 // The seeder only has an admin UI (including admin-post.php requests).
 if (is_admin()) {
-	foreach (array('log', 'source', 'image-importer', 'field-mapper', 'seeder', 'admin-page') as $name) {
+	foreach (array('log', 'source', 'asset-importer', 'field-mapper', 'seeder', 'admin-page') as $name) {
 		require_once ACF_SEEDER_DIR . "includes/class-{$name}.php";
 	}
 
