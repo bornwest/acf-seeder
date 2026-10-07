@@ -126,6 +126,12 @@ class Acf_Seeder
 
 		if ($existing) {
 			$args['ID'] = $existing[0];
+			// Keep the order saved in the DB (e.g. by Simple Custom Post Order);
+			// wp_insert_post() would otherwise reset it to 0.
+			$args['menu_order'] = (int) get_post_field('menu_order', $existing[0]);
+		} elseif (isset($seed['menu_order'])) {
+			// Initial order for newly created posts only.
+			$args['menu_order'] = (int) $seed['menu_order'];
 		}
 
 		$id = wp_insert_post($args, true);
