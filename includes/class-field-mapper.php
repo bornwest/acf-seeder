@@ -33,7 +33,7 @@ class Acf_Seeder_Field_Mapper
 			return;
 		}
 
-		$fields = $this->fields_for($post_type, $seed);
+		$fields = $this->fields_for($post_id, $post_type, $seed);
 
 		foreach ($fields as $field) {
 			$value = $this->lookup($field['name'], $data);
@@ -48,9 +48,9 @@ class Acf_Seeder_Field_Mapper
 
 	/**
 	 * Top-level ACF fields for a seed: the field group named by `group`, or
-	 * else the groups whose location matches the post type / page template.
+	 * else the groups whose location matches the post / post type / page template.
 	 */
-	private function fields_for($post_type, $seed)
+	private function fields_for($post_id, $post_type, $seed)
 	{
 		$groups = array();
 
@@ -65,6 +65,11 @@ class Acf_Seeder_Field_Mapper
 		if (! $groups) {
 			$filter = array('post_type' => $post_type);
 
+			// Lets rules that depend on the post itself (post slug, ID, ...) match.
+			if (is_numeric($post_id)) {
+				$filter['post_id'] = (int) $post_id;
+			}
+
 			if (! empty($seed['template'])) {
 				$filter['page_template'] = $seed['template'];
 			}
@@ -74,6 +79,8 @@ class Acf_Seeder_Field_Mapper
 
 		if (! $groups) {
 			$this->log->warning("No ACF field group found for '{$seed['slug']}'.");
+		} else {
+			$this->log->info("'{$seed['slug']}': field groups matched — " . implode(', ', array_column($groups, 'title')));
 		}
 
 		$fields = array();
