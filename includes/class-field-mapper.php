@@ -47,7 +47,7 @@ class Acf_Seeder_Field_Mapper
 	}
 
 	/**
-	 * Top-level ACF fields for a seed: the field group named by `group`, or
+	 * Top-level ACF fields for a seed: the field group(s) named by `group` (a title or a list of titles), or
 	 * else the groups whose location matches the post / post type / page template.
 	 */
 	private function fields_for($post_id, $post_type, $seed)
@@ -55,8 +55,10 @@ class Acf_Seeder_Field_Mapper
 		$groups = array();
 
 		if (! empty($seed['group'])) {
+			$titles = (array) $seed['group'];
+
 			foreach (acf_get_field_groups() as $group) {
-				if ($group['title'] === $seed['group']) {
+				if (in_array($group['title'], $titles, true)) {
 					$groups[] = $group;
 				}
 			}
